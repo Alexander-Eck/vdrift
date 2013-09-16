@@ -110,17 +110,28 @@ bool LoadDrawable::operator()(
 	content.load(mesh, path, meshname);
 
 	std::string scalestr;
-	if (cfg.get("scale", scalestr) &&
-		!content.get(mesh, path, meshname + scalestr))
+	std::string flipstr;
+	cfg.get("scale", scalestr);
+	cfg.get("flipnormals", flipstr);
+	if (!(scalestr.empty() && flipstr.empty()) &&
+		!content.get(mesh, path, meshname + scalestr + flipstr))
 	{
-		Vec3 scale;
-		std::stringstream s(scalestr);
-		s >> scale;
-
-		VertexArray meshva = mesh->GetVertexArray();
-		meshva.Scale(scale[0], scale[1], scale[2]);
-		content.load(mesh, path, meshname + scalestr, meshva);
+		VertexArray va = mesh->GetVertexArray();
+		if (!flipstr.empty())
+		{
+			va.FlipNormals();
+			va.FlipWindingOrder();
+		}
+		if (!scalestr.empty())
+		{
+			Vec3 scale;
+			std::stringstream s(scalestr);
+			s >> scale;
+			va.Scale(scale[0], scale[1], scale[2]);
+		}
+		content.load(mesh, path, meshname + scalestr + flipstr, va);
 	}
+
 	drawable.SetModel(*mesh);
 	models.insert(mesh);
 
@@ -164,19 +175,23 @@ bool LoadDrawable::operator()(
 	std::string drawtype;
 	if (cfg.get("draw", drawtype))
 	{
-		if (drawtype == "emissive")
+		if (drawtype == "carpaint")
 		{
-			drawable.SetDecal(true);
-			*draw = node->GetDrawlist().lights_emissive.insert(drawable);
+			*draw = node->GetDrawlist().car_noblend.insert(drawable);
 		}
 		else if (drawtype == "transparent")
 		{
 			*draw = node->GetDrawlist().normal_blend.insert(drawable);
 		}
+		else if (drawtype == "emissive")
+		{
+			drawable.SetDecal(true);
+			*draw = node->GetDrawlist().lights_emissive.insert(drawable);
+		}
 	}
 	else
 	{
-		*draw = node->GetDrawlist().car_noblend.insert(drawable);
+		*draw = node->GetDrawlist().normal_noblend.insert(drawable);
 	}
 
 	return true;
