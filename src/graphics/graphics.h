@@ -22,7 +22,6 @@
 
 #include "mathvector.h"
 #include "quaternion.h"
-#include "drawable_container.h"
 
 #include <iosfwd>
 
