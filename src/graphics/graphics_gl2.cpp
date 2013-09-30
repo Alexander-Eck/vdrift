@@ -375,19 +375,29 @@ void GraphicsGL2::BeginScene(std::ostream & error_output)
 	CheckForOpenGLErrors("BeginScene", error_output);
 }
 
-DrawableContainer <PtrVector> & GraphicsGL2::GetDynamicDrawlist()
+void GraphicsGL2::AddDynamicNode(SceneNode & node)
 {
-	return dynamic_drawlist;
+	node.Traverse(dynamic_drawlist, Mat4());
 }
 
-void GraphicsGL2::AddStaticNode(SceneNode & node, bool clearcurrent)
+void GraphicsGL2::AddStaticNode(SceneNode & node)
 {
-	static_drawlist.Generate(node, clearcurrent);
+	static_drawlist.Generate(node, false);
+}
+
+void GraphicsGL2::ClearDynamicDrawList()
+{
+	dynamic_drawlist.clear();
+}
+
+void GraphicsGL2::ClearStaticDrawList()
+{
+	static_drawlist.GetDrawList().clear();
 }
 
 void GraphicsGL2::SetupScene(
 	float fov, float new_view_distance,
-	const Vec3 cam_position,
+	const Vec3 & cam_position,
 	const Quat & cam_rotation,
 	const Vec3 & dynamic_reflection_sample_pos)
 {
@@ -1042,7 +1052,7 @@ void GraphicsGL2::CullScenePass(
 						renderscene.DisableOrtho();
 					Frustum frustum = renderscene.SetCameraInfo(cam.pos, cam.orient, cam.fov, cam.view_distance, cam.w, cam.h);
 					reseatable_reference <AabbTreeNodeAdapter <Drawable> > container =
-						static_drawlist.GetDrawlist().GetByName(*d);
+						static_drawlist.GetDrawList().GetByName(*d);
 
 					if (!container)
 					{
@@ -1057,7 +1067,7 @@ void GraphicsGL2::CullScenePass(
 			else
 			{
 				reseatable_reference <AabbTreeNodeAdapter <Drawable> > container =
-					static_drawlist.GetDrawlist().GetByName(*d);
+					static_drawlist.GetDrawList().GetByName(*d);
 
 				if (!container)
 				{

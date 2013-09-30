@@ -56,8 +56,6 @@
 
 #define _PRINTSIZE_(x) {std::cout << #x << ": " << sizeof(x) << std::endl;}
 
-#define USE_STATIC_OPTIMIZATION_FOR_TRACK
-
 
 template <typename T>
 static std::string cast(const T &t) {
@@ -431,22 +429,6 @@ void Game::InitCoreSubsystems()
 	eventsystem.Init(info_output);
 }
 
-/* Write the scenegraph to the output drawlist... */
-template <bool clearfirst>
-void TraverseScene(SceneNode & node, Graphics::dynamicdrawlist_type & output)
-{
-	if (clearfirst)
-	{
-		output.clear();
-	}
-
-	Mat4 identity;
-	node.Traverse(output, identity);
-
-	//std::cout << output.size() << std::endl;
-	//std::cout << node.Nodes() << "," << node.Drawables() << std::endl;
-}
-
 void Game::InitPlayerCar()
 {
 	Vec3 hsv;
@@ -768,21 +750,19 @@ void Game::BeginDraw(float dt)
 
 	PROFILER.beginBlock("scenegraph");
 
-	TraverseScene<true>(debugnode, graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(gui.GetNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(track.GetRacinglineNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(dynamicsdraw.getNode(), graphics_interface->GetDynamicDrawlist());
-#ifndef USE_STATIC_OPTIMIZATION_FOR_TRACK
-	TraverseScene<false>(track.GetTrackNode(), graphics_interface->GetDynamicDrawlist());
-#endif
-	TraverseScene<false>(track.GetBodyNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(hud.GetNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(trackmap.GetNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(inputgraph.GetNode(), graphics_interface->GetDynamicDrawlist());
-	TraverseScene<false>(tire_smoke.GetNode(), graphics_interface->GetDynamicDrawlist());
+	graphics_interface->ClearDynamicDrawList();
+	graphics_interface->AddDynamicNode(debugnode);
+	graphics_interface->AddDynamicNode(gui.GetNode());
+	graphics_interface->AddDynamicNode(track.GetRacinglineNode());
+	graphics_interface->AddDynamicNode(dynamicsdraw.getNode());
+	graphics_interface->AddDynamicNode(track.GetBodyNode());
+	graphics_interface->AddDynamicNode(hud.GetNode());
+	graphics_interface->AddDynamicNode(trackmap.GetNode());
+	graphics_interface->AddDynamicNode(inputgraph.GetNode());
+	graphics_interface->AddDynamicNode(tire_smoke.GetNode());
 	for (std::list <Car>::iterator i = cars.begin(); i != cars.end(); ++i)
 	{
-		TraverseScene<false>(i->GetNode(), graphics_interface->GetDynamicDrawlist());
+		graphics_interface->AddDynamicNode(i->GetNode());
 	}
 
 	//gui.GetNode().DebugPrint(info_output);
@@ -1763,10 +1743,8 @@ bool Game::LoadTrack(const std::string & trackname)
 		dynamics.setDebugDrawer(0);
 	}
 
-	// Build static drawlist.
-#ifdef USE_STATIC_OPTIMIZATION_FOR_TRACK
+	graphics_interface->ClearStaticDrawList();
 	graphics_interface->AddStaticNode(track.GetTrackNode());
-#endif
 
 	return true;
 }
@@ -1816,10 +1794,8 @@ void Game::LoadGarage()
 		return;
 	}
 
-	// Build static drawlist.
-#ifdef USE_STATIC_OPTIMIZATION_FOR_TRACK
+	graphics_interface->ClearStaticDrawList();
 	graphics_interface->AddStaticNode(track.GetTrackNode());
-#endif
 
 	// Load car.
 	SetGarageCar();
@@ -2271,12 +2247,12 @@ void Game::ShowLoadingScreen(float progress, float max, bool drawGui, const std:
 	assert(max > 0);
 	loadingscreen.Update(progress/max, optionalText, x, y);
 
-	graphics_interface->GetDynamicDrawlist().clear();
+	graphics_interface->ClearDynamicDrawList();
 	if (drawGui)
 	{
-		TraverseScene<false>(gui.GetNode(), graphics_interface->GetDynamicDrawlist());
+		graphics_interface->AddDynamicNode(gui.GetNode());
 	}
-	TraverseScene<false>(loadingscreen.GetNode(), graphics_interface->GetDynamicDrawlist());
+	graphics_interface->AddDynamicNode(loadingscreen.GetNode());
 
 	graphics_interface->SetupScene(45.0, 100.0, Vec3 (), Quat (), Vec3 ());
 	graphics_interface->BeginScene(error_output);
@@ -2557,9 +2533,7 @@ void Game::LeaveGame()
 	gui.SetInGame(false);
 	gui.ActivatePage("Main", 0.25, error_output);
 
-	// Clear out the static drawables.
-	SceneNode empty;
-	graphics_interface->AddStaticNode(empty, true);
+	graphics_interface->ClearStaticDrawList();
 
 	track.Clear();
 	cars.clear();

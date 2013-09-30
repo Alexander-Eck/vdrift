@@ -64,14 +64,18 @@ public:
 
 	virtual void BeginScene(std::ostream & error_output);
 
-	virtual DrawableContainer <PtrVector> & GetDynamicDrawlist();
+	virtual void AddDynamicNode(SceneNode & node);
 
-	virtual void AddStaticNode(SceneNode & node, bool clearcurrent = true);
+	virtual void AddStaticNode(SceneNode & node);
+
+	virtual void ClearDynamicDrawList();
+
+	virtual void ClearStaticDrawList();
 
 	/// Setup scene cameras
 	virtual void SetupScene(
 		float fov, float new_view_distance,
-		const Vec3 cam_position,
+		const Vec3 & cam_position,
 		const Quat & cam_rotation,
 		const Vec3 & dynamic_reflection_sample_pos);
 

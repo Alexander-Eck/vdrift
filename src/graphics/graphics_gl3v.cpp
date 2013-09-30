@@ -148,7 +148,8 @@ GraphicsGL3::CameraMatrices & GraphicsGL3::setCameraPerspective(const std::strin
 	return matrices;
 }
 
-GraphicsGL3::CameraMatrices & GraphicsGL3::setCameraOrthographic(const std::string & name,
+GraphicsGL3::CameraMatrices & GraphicsGL3::setCameraOrthographic(
+	const std::string & name,
 	const Vec3 & position,
 	const Quat & rotation,
 	const Vec3 & orthoMin,
@@ -174,8 +175,11 @@ GraphicsGL3::CameraMatrices & GraphicsGL3::setCameraOrthographic(const std::stri
 	return matrices;
 }
 
-void GraphicsGL3::SetupScene(float fov, float new_view_distance, const Vec3 cam_position, const Quat & cam_rotation,
-				const Vec3 & dynamic_reflection_sample_pos)
+void GraphicsGL3::SetupScene(
+	float fov, float new_view_distance,
+	const Vec3 & cam_position,
+	const Quat & cam_rotation,
+	const Vec3 & dynamic_reflection_sample_pos)
 {
 	lastCameraPosition = cam_position;
 
@@ -528,7 +532,7 @@ void GraphicsGL3::DrawScene(std::ostream & error_output)
 					}
 
 					// assemble static entries
-					reseatable_reference <AabbTreeNodeAdapter <Drawable> > staticDrawablesPtr = static_drawlist.GetDrawlist().GetByName(drawGroupString);
+					reseatable_reference <AabbTreeNodeAdapter <Drawable> > staticDrawablesPtr = static_drawlist.GetDrawList().GetByName(drawGroupString);
 					if (staticDrawablesPtr)
 					{
 						const AabbTreeNodeAdapter <Drawable> & staticDrawables = *staticDrawablesPtr;
@@ -676,12 +680,27 @@ bool GraphicsGL3::ReloadShaders(std::ostream & info_output, std::ostream & error
 	return true;
 }
 
-void GraphicsGL3::AddStaticNode(SceneNode & node, bool clearcurrent)
+void GraphicsGL3::AddDynamicNode(SceneNode & node)
 {
-	static_drawlist.Generate(node, clearcurrent);
+	node.Traverse(dynamic_drawlist, Mat4());
 }
 
-void GraphicsGL3::SetCloseShadow ( float value )
+void GraphicsGL3::AddStaticNode(SceneNode & node)
+{
+	static_drawlist.Generate(node, false);
+}
+
+void GraphicsGL3::ClearDynamicDrawList()
+{
+	dynamic_drawlist.clear();
+}
+
+void GraphicsGL3::ClearStaticDrawList()
+{
+	static_drawlist.GetDrawList().clear();
+}
+
+void GraphicsGL3::SetCloseShadow(float value)
 {
 	closeshadow = value;
 }
@@ -696,7 +715,7 @@ void GraphicsGL3::SetSunDirection(const Vec3 & value)
 	light_direction = value;
 }
 
-void GraphicsGL3::SetContrast ( float value )
+void GraphicsGL3::SetContrast(float /*value*/)
 {
-
+	/* noop */
 }
